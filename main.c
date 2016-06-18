@@ -22,45 +22,67 @@ void heapFunction(int element){
 }
 
 int main(int argc, char *argv[]){
-  
+  /**open input file*/
   FILE *fp;
-
-  /**open file*/
-  
-  //taking card of error conditions for reading file
-  if(argc != 2){   // Check the files
+  /*No input file typed */
+  if(argc != 2){
     fprintf(stderr, "ERROR: Missing input file, please refer to readMe.txt");
     return(-1);
-    
   }
-  if((fp = fopen(argv[1], "rb")) == NULL){
+  /*Invalid input file */
+  if((fp = fopen(argv[1], "rb")) == NULL){   
     fprintf(stderr, "ERROR opening file %s: %s", argv[1], strerror(errno));
     return(errno);
   }
-  fprintf(stdout, "reading sensor data out of %s\n", argv[1]);
+  /* open input file scuccessfully*/
+  fprintf(stdout, "reading sensor data out of %s\n", argv[1]);         
   int i = 0;
-  while((fread(&threeByteForm, sizeof(threeByteForm), 1, fp)) != 0){
+  /* while not the end of the file, get two 12bits data from the input file */
+  while((fread(&threeByteForm, sizeof(threeByteForm), 1, fp)) != 0){   
+     	// see if first value can be put into the 32 heap array?
+  		//check if the heap array is full?
+   			// in not full condition
+     				//insert the value to heap array
+  			// in full condition
+    				//check if the value is bigger than heapArray[1]
+       					//if the value is bigger
+          						//replace heap[1] with the new element
+
+	// see if second value can be put into the 32 heap array?
+  		//check if the heap array is full?
+   			// in not full condition
+     				//insert the value to heap array
+  			// in full condition
+    				//check if the value is bigger than heapArray[1]
+       					//if the value is bigger
+          						//replace heap[1] with the new element
      printf("the %d th value is %#06x\n", i, threeByteForm);
      printf("the position of stream is %d\n", ftell(fp)); 
      printf("the value of feof() is %d\n", feof(fp));
      printf("_________________________\n", feof(fp));
      i++;
   }
-  if(!feof(fp)){
-    //error during file reading
+ 
+  if(!feof(fp)){ //error during file reading
+
     fprintf(stderr, "ERROR reading file %s: %s", argv[1], strerror(errno));
     return(errno);
   }
-  //check if have the odd 12bits data, have to use division here, risky
-  if(ftell(fp) == -1){
+
+  if(ftell(fp) == -1){ //check current postion of the file 
      fprintf(stderr, "ERROR checking file %s position: %s", argv[1], strerror(errno));
      return(errno);
   }
-  if(ftell(fp)%3){
+  if(ftell(fp)%3){    //check if have the odd 12bits data, have to use division here, risky
     printf("the data have odd number of 12bit data");
     threeByteForm.byteValue[2] = 0;
     printf("the last value is %#06x\n ", threeByteForm);
   }
+  
+  //reorder the heap with heap sort
+//output it to the output file
+
+//output the last 32 to the output file
 
   
   
