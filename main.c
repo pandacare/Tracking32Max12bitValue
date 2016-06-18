@@ -52,8 +52,14 @@ int main(int argc, char *argv[]){
     return(errno);
   }
   //check if have the odd 12bits data, have to use division here, risky
+  if(ftell(fp) == -1){
+     fprintf(stderr, "ERROR checking file %s position: %s", argv[1], strerror(errno));
+     return(errno);
+  }
   if(ftell(fp)%3){
     printf("the data have odd number of 12bit data");
+    threeByteForm.byteValue[2] = 0;
+    printf("the last value is %#06x\n ", threeByteForm);
   }
 
   
