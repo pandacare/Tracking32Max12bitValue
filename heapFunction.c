@@ -94,11 +94,14 @@ void heapInsertRoot(uint16 num ){
   uint16 temp;
   uint8  childIndex;
   heapBuff[location] = num;             // assign new input to root
-  while(location < halfHeapSize){
+  while(location <= halfHeapSize){
     childIndex = location <<1;
-    if(heapBuff[childIndex] > heapBuff[childIndex + 1]){
-      childIndex = childIndex + 1; 
-    } 
+		if(childIndex < HeapSize){
+			if(heapBuff[childIndex] > heapBuff[childIndex + 1]){
+				childIndex = childIndex + 1; 
+			} 
+		}
+   
     /*swap value in heap*/    
     if (heapBuff[childIndex] < heapBuff[location]){
 			temp = heapBuff[childIndex];
@@ -131,7 +134,7 @@ void heapSort(int location){
 }
 
 /**************************************************************************
- *  heapAdjust
+ *  heapify
  *     NOTE: At PUR, Int regs are 0'd   p. 34-42
  *  CLEAR, then UPDATE the global "RF_Int Status" flag
  *    If needed, Aux is read (Main INT & 0x01) and shifted into MSB
@@ -142,20 +145,31 @@ void heapSort(int location){
  *
  *  Return: N/A - However, this function CLEARS, then UPDATES the global RF_IntStatus flag
 **************************************************************************/
-void heapAdjust(uint16 num ){
+void heapify(uint8 location ){
+  uint8 location = ROOT;
   uint16 temp;
-  uint8  parentIndex;
   uint8  childIndex;
-  heapBuff[1] = num;             // assign new number to the root
-  while(location > 1){
-    parentIndex = location >> 2;
-    if (heapBuff[location] < heapBuff[parentIndex]){
-        temp = heapBuff[parentIndex];
-        heapBuff[parentIndex] = heapBuff[location];
-        heapBuff[location] = temp;
-        location = parentIndex;
+  heapBuff[location] = num;             // assign new input to root
+  while(location <= halfHeapSize){
+    childIndex = location <<1;
+		if(childIndex < HeapSize){
+			if(heapBuff[childIndex] > heapBuff[childIndex + 1]){
+				childIndex = childIndex + 1; 
+			} 
+		}
+   
+    /*swap value in heap*/    
+    if (heapBuff[childIndex] < heapBuff[location]){
+			temp = heapBuff[childIndex];
+			heapBuff[childIndex] = heapBuff[location];
+			heapBuff[location] = temp;
+			location = childIndex;
+    }
+    else{
+      break;
     }
     
   }
+	return;
 }
 
