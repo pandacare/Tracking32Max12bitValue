@@ -48,7 +48,7 @@ void heapsort(void) {
 	uint8 heapifySize = 32;
 	while(heapifySize >= 1){
 		temp = heapArray[heapifySize];
-		heapArray[heapifySize] = heapArray[ROOT];
+		heapArray[heapifySize] = heapArray[ROOT]; // here should be replaced by real output file write
 		heapArray[ROOT] = temp;
 		heapifySize--;
 		heapify(heapifySize, ROOT);
