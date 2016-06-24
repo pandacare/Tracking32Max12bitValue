@@ -10,14 +10,11 @@
  */
 #ifndef HEAPFUNCTION_H_
 #define HEAPFUNCTION_H_
-#include "type.h"
-
-void heapsort(void);
-void heapify(uint8,uint8);
-void buildHeap(void);
-void heapHandle(uint16 );
-void heapInsert(uint16 , uint8);
-void heapInsertRoot(uint16);
-
-
+	#include "type.h"
+	void heapsort(void);
+	void heapify(uint8,uint8);
+	void buildHeap(void);
+	void heapHandle(uint16 );
+	void heapInsert(uint16 , uint8);
+	void heapInsertRoot(uint16);
 #endif

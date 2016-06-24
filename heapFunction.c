@@ -8,47 +8,15 @@
  *
  *
  */
+ 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "type.h"
-#define  ROOT              1         // Store fisrt value in heapArray[1]
-#define  HEAP_SIZE        32         // Heap size
-#define  HALF_HEAP_SIZE   16         // Half heap size = HEAP_SIZE/2
-#define  HEAP_ARRAY_SIZE  33         // HEAP_SIZE + 1, the real array size
+#include "global.h"
+#include "fileHandle.h"
+#include "heapFunction.h"
 
-uint16 heapArray[HEAP_ARRAY_SIZE] = {0,60,4,7,40,9,23,7,
-                                     8,40,0,56,66,56,36,23,
-																	   8,89,4,40,13,14,56,70,
-																	   6,77,45,46,56,88,7,24,
-																	   87};
-// uint16 heapArray[HEAP_ARRAY_SIZE] = {0,60,4,7,40,9,23,7,
-// 78,40,10,56,66,44,36,23,
-// 78,89,40,40,13,14,56,70,
-// 66,77,45,46,56,88,76,24,
-// 87};
-void heapsort(void);
-void heapify(uint8,uint8);
-void buildHeap(void);
-void heapHandle(uint16 );
-void heapInsert(uint16 , uint8);
-void heapInsertRoot(uint16);
-
-
-
-main() {
-		int n,i;
-    n =33;
-	  buildHeap();
-		for (i=1;i<n;i++)
-		 printf("\t%d",heapArray[i]);
-	  heapsort();
-		
-	   printf("\n the sorted output is: \n");
-	 		 for (i=1;i<n;i++)
-		printf("\t%d",heapArray[i]);
-	 printf("\n done \n");
-	
-}
 /**************************************************************************
  *  Function: heapHandle
  *     NOTE: Check the heap array occupied space and call function accordingly 
@@ -61,14 +29,24 @@ main() {
 **************************************************************************/
 void heapHandle(uint16 num){
 	/*initialized everytime when execute the .exe, need to be modified when in embedded environment*/
-  static uint8 heapIndex = ROOT;  
+  //static uint8 heapIndex = ROOT;  make it global
+	#ifndef MEMORY_SAVE
+		/*first store val to last_32.lastDataArray*/
+		lastDataArray[dataIndex.val++] = num;
+	#endif
   /*if heap not full, insert new value from bottom*/
   if(!(heapIndex > HEAP_SIZE) ){
     heapInsert(num,heapIndex);
+		printf("the heapIndex is %d\n",heapIndex);
     heapIndex++;
-  }
-  /*if heap is full and new input smaller than root, insert new value from root*/
-  else if(num < heapArray[ROOT] ){      
+		printf("the heapIndex is %d\n",heapIndex);
+  }	
+	/*if heap is full and new input smaller than root, insert new value from root*/
+	#ifdef MEMORY_SAVE_SUPER
+		else if(num > readIndexBuffer(ROOT) ){ 	     
+	#else
+		else if(num > heapArray[ROOT] ){ 
+	#endif
     heapInsertRoot(num);
   }
 }
@@ -87,20 +65,42 @@ void heapHandle(uint16 num){
 void heapInsert(uint16 num, uint8 location ){
   uint16 temp;
   uint8  parentIndex;
-  heapArray[location] = num;
-  while(location > 1){
-    parentIndex = location >>1;
-    /*swap value in heap if break heap rule*/  
-    if (heapArray[location] < heapArray[parentIndex]){
-			temp = heapArray[parentIndex];
-			heapArray[parentIndex] = heapArray[location];
-			heapArray[location] = temp;
-			location = parentIndex;
-    }
-    else{
-      break;
-    } 
-  }
+
+	#ifdef MEMORY_SAVE_SUPER
+		uint16 readIndexBuffer_location;
+		uint16 readIndexBuffer_parentIndex;
+		writeIndexBuffer(location, num );	
+		while(location > 1){
+			parentIndex = location >>1;
+			readIndexBuffer_location = readIndexBuffer(location);
+			readIndexBuffer_parentIndex = readIndexBuffer(parentIndex);
+			/*swap value in heap if break heap rule*/  
+			if (readIndexBuffer_location < readIndexBuffer_parentIndex){
+				temp = readIndexBuffer_parentIndex;
+				writeIndexBuffer(parentIndex, readIndexBuffer_location );	
+				writeIndexBuffer(location, temp );
+				location = parentIndex;
+			}
+			else{
+				break;
+			} 
+		}
+	#else
+		heapArray[location] = num;
+		while(location > 1){
+			parentIndex = location >>1;
+			/*swap value in heap if break heap rule*/  
+			if (heapArray[location] < heapArray[parentIndex]){
+				temp = heapArray[parentIndex];
+				heapArray[parentIndex] = heapArray[location];
+				heapArray[location] = temp;
+				location = parentIndex;
+			}
+			else{
+				break;
+			} 
+		}
+	#endif
 	return;
 }
 /**************************************************************************
@@ -117,27 +117,51 @@ void heapInsertRoot(uint16 num ){
   uint8 location = ROOT;
   uint16 temp;
   uint8  childIndex;
-  heapArray[location] = num;             // assign new input to root
-  while(location <= HALF_HEAP_SIZE){
-    childIndex = location <<1;
-		if(childIndex < HEAP_SIZE){
-			if(heapArray[childIndex] > heapArray[childIndex + 1]){
-				childIndex = childIndex + 1; 
-			} 
+	#ifdef MEMORY_SAVE_SUPER
+		uint16 readIndexBuffer_location;
+	  uint16 readIndexBuffer_childIndex;
+	  writeIndexBuffer(location, num );	            // assign new input to root
+		while(location <= HALF_HEAP_SIZE){
+			childIndex = location <<1;
+			if(childIndex < HEAP_SIZE){
+				if(readIndexBuffer(childIndex) > readIndexBuffer(childIndex + 1)){
+					childIndex = childIndex + 1; 
+				} 
+			}
+			readIndexBuffer_childIndex = readIndexBuffer(childIndex);
+			readIndexBuffer_location = readIndexBuffer(location);
+			/*swap value in heap*/    
+			if (readIndexBuffer_childIndex < readIndexBuffer_location ){
+				temp = readIndexBuffer_childIndex;
+				writeIndexBuffer(childIndex, readIndexBuffer_location);
+				writeIndexBuffer(location, temp);
+				location = childIndex;
+			}
+			else{
+				break;
+			}
 		}
-   
-    /*swap value in heap*/    
-    if (heapArray[childIndex] < heapArray[location]){
-			temp = heapArray[childIndex];
-			heapArray[childIndex] = heapArray[location];
-			heapArray[location] = temp;
-			location = childIndex;
-    }
-    else{
-      break;
-    }
-    
-  }
+	#else
+		heapArray[location] = num;             // assign new input to root
+		while(location <= HALF_HEAP_SIZE){
+			childIndex = location <<1;
+			if(childIndex < HEAP_SIZE){
+				if(heapArray[childIndex] > heapArray[childIndex + 1]){
+					childIndex = childIndex + 1; 
+				} 
+			}
+			/*swap value in heap*/    
+			if (heapArray[childIndex] < heapArray[location]){
+				temp = heapArray[childIndex];
+				heapArray[childIndex] = heapArray[location];
+				heapArray[location] = temp;
+				location = childIndex;
+			}
+			else{
+				break;
+			}
+		}
+	#endif
 	return;
 }
 
@@ -153,9 +177,15 @@ void heapsort(void) {
 	uint16 temp;
 	uint8 heapifySize = 32;
 	while(heapifySize >= 1){
-		temp = heapArray[heapifySize];
-		heapArray[heapifySize] = heapArray[ROOT]; // here should be replaced by real output file write
-		heapArray[ROOT] = temp;
+		#ifdef MEMORY_SAVE_SUPER
+			temp = readIndexBuffer(heapifySize);
+			writeIndexBuffer(heapifySize,readIndexBuffer(ROOT)); // here should be replaced by real output file write
+			writeIndexBuffer(ROOT,temp);
+		#else
+			temp = heapArray[heapifySize];
+			heapArray[heapifySize] = heapArray[ROOT]; // here should be replaced by real output file write
+			heapArray[ROOT] = temp;
+		#endif
 		heapifySize--;
 		heapify(heapifySize, ROOT);
 	}
@@ -174,6 +204,29 @@ void heapsort(void) {
 	void heapify(uint8 size, uint8 n) {
 		uint16 temp = 0;
 		uint8 childIndex = n << 1;
+		#ifdef MEMORY_SAVE_SUPER		
+			uint16 readIndexBuffer_childIndex;
+			uint16 readIndexBuffer_n;
+			if(childIndex < size){
+				if(readIndexBuffer(childIndex) > readIndexBuffer(childIndex + 1)){
+					childIndex = childIndex + 1; 
+				} 
+			}
+			
+			/*quit heapify when go through the whole subtree*/
+			if(childIndex > size){
+				return;
+			}
+			readIndexBuffer_childIndex = readIndexBuffer(childIndex);
+			readIndexBuffer_n = readIndexBuffer(n);
+			if(readIndexBuffer_childIndex < readIndexBuffer_n ){
+				temp = readIndexBuffer_childIndex;
+				writeIndexBuffer(childIndex,readIndexBuffer_n );
+				writeIndexBuffer(n,temp );
+				n = childIndex;
+				heapify(size,n);
+			}
+		#else
 		if(childIndex < size){
 			if(heapArray[childIndex] > heapArray[childIndex + 1]){
 				childIndex = childIndex + 1; 
@@ -190,6 +243,7 @@ void heapsort(void) {
 			n = childIndex;
 			heapify(size,n);
 		}
+		#endif
     return;
 	}
 	
