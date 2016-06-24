@@ -17,6 +17,21 @@
 #include "heapFunction.h"
 #include "main.h"
 
+/**************************************************************************
+ *  Function: main
+ *     NOTE:User types in ./main.exe fileName.bin. Code will readout all the 
+ *          12bits data of inputfile.bin in a format of every 3 bytes, calculate
+ *          out the value and keep tracking the 32 maximum data, output to 
+ *          fileName.out, the last 32 maximum data are also output to the same 
+ *          file following the 32 maximum data.  If there are fewer than 
+ *          32 values in the file then whatever is read should will be output. 
+ *  Args: 
+ *     argc:    Used to tell if the command line input is valid or not
+ *              		       
+ *		 *argv[]: Used to get the input file name and directory
+ *  Return: int 
+**************************************************************************/
+
 int main(int argc, char *argv[]){
 	#ifdef DEBUG
 		#ifdef MEMORY_SAVE_SUPER
