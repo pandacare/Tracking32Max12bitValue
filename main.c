@@ -12,7 +12,7 @@
 #include<stdlib.h>
 #include<string.h>
 //#define MEMORY_SAVE_SUPER
-#define MEMORY_SAVE
+//#define MEMORY_SAVE
 #ifdef  MEMORY_SAVE_SUPER
 	#define MEMORY_SAVE
 #endif
@@ -109,9 +109,8 @@ int main(int argc, char *argv[]){
   }
 	/*check if have the odd 12bits data, have to use division here, risky!!*/
 	uint8 oddReadOffset = 0;
-  if(filePosition % 3){    
+  if(oddReadOffset = (filePosition % 3)){    
 		heapHandle(FIRST_12BIT);
-		oddReadOffset = 2;
   }
   /*reorder the heap with heap sort*/
 	 heapsort();
