@@ -11,6 +11,12 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+//#define MEMORY_SAVE_SUPER
+#define MEMORY_SAVE
+#ifdef  MEMORY_SAVE_SUPER
+	#define MEMORY_SAVE
+#endif
+#define DATA_SIZE_IN_BYTE 48
 #define  ROOT              1         // Store fisrt value in heapArray[1]
 #define  HEAP_SIZE        32         // Heap size
 #define  LAST_DATA_SIZE   32         // Heap size
@@ -21,6 +27,17 @@
 typedef unsigned short int uint16;
 typedef unsigned  int      uint32;
 typedef unsigned char      uint8;
+#ifdef MEMORY_SAVE_SUPER
+typedef struct{
+  uint8 first8 :8;
+  uint8 first4 :4;
+  uint8 secon4 :4;
+  uint8 secon8 :8;
+} Bit24_t;
+Bit24_t bit24_16[16];
+uint16 readIndexBuffer( uint8 );
+void writeIndexBuffer(uint8 , uint16);
+#endif
 
 typedef struct{
   uint8 fourBit1 :4;
@@ -39,11 +56,12 @@ typedef struct{
 	uint8 val :5; 
 }dataIndex_t;
 dataIndex_t dataIndex;
+#ifndef MEMORY_SAVE
 uint16 lastDataArray [LAST_DATA_SIZE] ;// store the last 32 data
-
+#endif
+#ifndef MEMORY_SAVE_SUPER
 uint16 heapArray[HEAP_ARRAY_SIZE] ;// min heap, i.e. the smallest value is in heap[1]
-
-int heapSize;
+#endif
 uint8 heapIndex = ROOT;
 void heapsort(void);
 void heapify(uint8,uint8);
@@ -52,8 +70,18 @@ void heapHandle(uint16 );
 void heapInsert(uint16 , uint8);
 void heapInsertRoot(uint16);
 FILE* openFile(int , char*);
-void passDataOutputFile(char*, FILE*, uint8, long);
+void passDataOutputFile(char*, FILE*, uint8, long, uint8);
+
 int main(int argc, char *argv[]){
+  #ifdef MEMORY_SAVE_SUPER
+	printf("super memory save mode\n");
+	#else
+		#ifdef MEMORY_SAVE
+	printf(" memory save mode\n");
+  #else
+	printf(" no memory save mode\n");
+	#endif
+	#endif
   /**open input file*/
   FILE *fp = NULL;
   fp = openFile(argc, argv[1]);  
@@ -80,13 +108,15 @@ int main(int argc, char *argv[]){
      return(errno);
   }
 	/*check if have the odd 12bits data, have to use division here, risky!!*/
+	uint8 oddReadOffset = 0;
   if(filePosition % 3){    
 		heapHandle(FIRST_12BIT);
+		oddReadOffset = 2;
   }
   /*reorder the heap with heap sort*/
 	 heapsort();
 	/*output everything required to the output file*/
-  passDataOutputFile(argv[1],fp, heapIndex, 2);	
+  passDataOutputFile(argv[1],fp, heapIndex, filePosition, oddReadOffset);	
 	/*close input file here*/
   fclose(fp);
   return 0;
@@ -133,7 +163,7 @@ FILE* openFile(int argc, char*fileName){
  *  Return: N/A 
 **************************************************************************/
 
-void passDataOutputFile(char*fileName, FILE* inputFile, uint8 heapIndex,long filePostion){
+void passDataOutputFile(char*fileName, FILE* inputFile, uint8 heapIndex,long filePostion, uint8 oddReadOffset){
 	FILE* fp = NULL;
 	/*adjust fileName to match the example*/
 	int fileNameIndex = strlen(fileName);
@@ -150,21 +180,90 @@ void passDataOutputFile(char*fileName, FILE* inputFile, uint8 heapIndex,long fil
   fprintf(fp, "--Sorted Max 32 Values--\n");
 	uint8 i;
 	for(i = heapIndex - 1; i > 0; i--){
-		fprintf(fp,"%d\n", heapArray[i] );
+		#ifdef MEMORY_SAVE_SUPER
+			fprintf(fp,"%d\n", readIndexBuffer(i) );
+		#else
+			fprintf(fp,"%d\n", heapArray[i] );
+	  #endif
 	}
 	/*write the last 32 to the output file*/
 	fprintf(fp, "--Last 32 Valeus--\n");
 	fprintf(fp,"the heapIndex is %d\n",heapIndex);
 	if(heapIndex > HEAP_SIZE){
+		#ifdef MEMORY_SAVE
+		printf("filePosition before adjust is %d\n",filePostion);
+			filePostion = filePostion - oddReadOffset - DATA_SIZE_IN_BYTE;
+			printf("filePosition is %d\n",filePostion);
+			printf("the position of stream before fseek is %d\n", ftell(inputFile)); 
+			if(fseek(inputFile,- oddReadOffset - DATA_SIZE_IN_BYTE,SEEK_END)){
+				fprintf(stderr, "ERROR reading file 1 %s: %s", fileName, strerror(errno));
+				return;
+			}
+			printf("filePosition after fseek is %d\n",filePostion);
+			printf("the position of stream after fseek is %d\n", ftell(inputFile)); 
+			/*in case of odd number of 12bit data,start output from second 12bit value of first loop*/ 
+			if(oddReadOffset){
+				for(i = 0; i < 16; i++){
+					if(!fread(data.byteVal, sizeof(data.byteVal), 1, inputFile)){
+						fprintf(stderr, "ERROR reading file 2 %s: %s", fileName, strerror(errno));
+						return;
+					}
+					/*start output from second 12bit value of first loop*/ 
+					if(!i){
+						fprintf(fp,"%d\n",SECON_12BIT);
+					}
+					else{
+						fprintf(fp,"%d\n",FIRST_12BIT);
+						fprintf(fp,"%d\n",SECON_12BIT);
+					}
+			
+				}		
+				/*output the last odd 12bit*/
+				fread(data.byteVal, sizeof(data.byteVal), 1, inputFile);
+				fprintf(fp,"%d\n",FIRST_12BIT); 
+			}
+			/*in case of no odd number of 12bit data,start output from first 12bit value of first loop*/ 
+			else{	
+				for(i = 0; i < 16; i++){
+					if(!fread(data.byteVal, sizeof(data.byteVal), 1, inputFile)){
+						fprintf(stderr, "ERROR reading file 3 %s: %s", fileName, strerror(errno));
+						return;
+					}
+					fprintf(fp,"%d\n",FIRST_12BIT);
+			    fprintf(fp,"%d\n",SECON_12BIT);
+				}
+			}
+    #else			
 		for(i = 0; i < LAST_DATA_SIZE; i++){
 			printf("the number is %d\n", i );
 			fprintf(fp,"%d\n",lastDataArray[dataIndex.val++]);
-		}	
+		}
+    #endif
 	}
 	else{
+		#ifdef MEMORY_SAVE
+			if(fseek(inputFile,0,SEEK_SET)){
+				fprintf(stderr, "ERROR reading file 4 %s: %s", fileName, strerror(errno));
+				return;
+			}
+			while((fread(data.byteVal, sizeof(data.byteVal), 1, inputFile)) != 0){ 
+				fprintf(fp,"%d\n",FIRST_12BIT);
+			  fprintf(fp,"%d\n",SECON_12BIT);
+			}
+			/*error during file reading*/
+			if(!feof(inputFile)){ 
+				fprintf(stderr, "ERROR reading file 5 %s: %s", fileName, strerror(errno));
+				return;
+			}
+			/*in case of no odd number of 12bit data,output the last one*/
+			if(oddReadOffset){
+				fprintf(fp,"%d\n",FIRST_12BIT);
+			}	
+		#else	
 		for(i = 0; i < dataIndex.val; i++){
 			fprintf(fp,"%d\n",lastDataArray[i]);
 		}
+		#endif
 	}
 	//use fseek to locate the position of the input file with refer to end of file 
 	//get one out and put it to the output
@@ -187,17 +286,23 @@ void passDataOutputFile(char*fileName, FILE* inputFile, uint8 heapIndex,long fil
 void heapHandle(uint16 num){
 	/*initialized everytime when execute the .exe, need to be modified when in embedded environment*/
   //static uint8 heapIndex = ROOT;  make it global
+	#ifndef MEMORY_SAVE
 	/*first store val to last_32.lastDataArray*/
 	lastDataArray[dataIndex.val++] = num;
+	#endif
   /*if heap not full, insert new value from bottom*/
   if(!(heapIndex > HEAP_SIZE) ){
     heapInsert(num,heapIndex);
 		printf("the heapIndex is %d\n",heapIndex);
     heapIndex++;
 		printf("the heapIndex is %d\n",heapIndex);
-  }
-  /*if heap is full and new input smaller than root, insert new value from root*/
-  else if(num > heapArray[ROOT] ){      
+  }	
+	/*if heap is full and new input smaller than root, insert new value from root*/
+	#ifdef MEMORY_SAVE_SUPER
+		else if(num > readIndexBuffer(ROOT) ){ 	     
+	#else
+		else if(num > heapArray[ROOT] ){ 
+	#endif
     heapInsertRoot(num);
   }
 }
@@ -216,20 +321,42 @@ void heapHandle(uint16 num){
 void heapInsert(uint16 num, uint8 location ){
   uint16 temp;
   uint8  parentIndex;
-  heapArray[location] = num;
-  while(location > 1){
-    parentIndex = location >>1;
-    /*swap value in heap if break heap rule*/  
-    if (heapArray[location] < heapArray[parentIndex]){
-			temp = heapArray[parentIndex];
-			heapArray[parentIndex] = heapArray[location];
-			heapArray[location] = temp;
-			location = parentIndex;
-    }
-    else{
-      break;
-    } 
-  }
+
+	#ifdef MEMORY_SAVE_SUPER
+	uint16 readIndexBuffer_location;
+	uint16 readIndexBuffer_parentIndex;
+		writeIndexBuffer(location, num );	
+		while(location > 1){
+			parentIndex = location >>1;
+			readIndexBuffer_location = readIndexBuffer(location);
+			readIndexBuffer_parentIndex = readIndexBuffer(parentIndex);
+			/*swap value in heap if break heap rule*/  
+			if (readIndexBuffer_location < readIndexBuffer_parentIndex){
+				temp = readIndexBuffer_parentIndex;
+				writeIndexBuffer(parentIndex, readIndexBuffer_location );	
+				writeIndexBuffer(location, temp );
+				location = parentIndex;
+			}
+			else{
+				break;
+			} 
+		}
+	#else
+		heapArray[location] = num;
+		while(location > 1){
+			parentIndex = location >>1;
+			/*swap value in heap if break heap rule*/  
+			if (heapArray[location] < heapArray[parentIndex]){
+				temp = heapArray[parentIndex];
+				heapArray[parentIndex] = heapArray[location];
+				heapArray[location] = temp;
+				location = parentIndex;
+			}
+			else{
+				break;
+			} 
+		}
+	#endif
 	return;
 }
 /**************************************************************************
@@ -246,6 +373,32 @@ void heapInsertRoot(uint16 num ){
   uint8 location = ROOT;
   uint16 temp;
   uint8  childIndex;
+	#ifdef MEMORY_SAVE_SUPER
+		uint16 readIndexBuffer_location;
+	  uint16 readIndexBuffer_childIndex;
+	  writeIndexBuffer(location, num );	            // assign new input to root
+  while(location <= HALF_HEAP_SIZE){
+    childIndex = location <<1;
+		if(childIndex < HEAP_SIZE){
+			if(readIndexBuffer(childIndex) > readIndexBuffer(childIndex + 1)){
+				childIndex = childIndex + 1; 
+			} 
+		}
+    readIndexBuffer_childIndex = readIndexBuffer(childIndex);
+		readIndexBuffer_location = readIndexBuffer(location);
+    /*swap value in heap*/    
+    if (readIndexBuffer_childIndex < readIndexBuffer_location ){
+			temp = readIndexBuffer_childIndex;
+			writeIndexBuffer(childIndex, readIndexBuffer_location);
+			writeIndexBuffer(location, temp);
+			location = childIndex;
+    }
+    else{
+      break;
+    }
+    
+  }
+	#else
   heapArray[location] = num;             // assign new input to root
   while(location <= HALF_HEAP_SIZE){
     childIndex = location <<1;
@@ -267,6 +420,7 @@ void heapInsertRoot(uint16 num ){
     }
     
   }
+	#endif
 	return;
 }
 
@@ -282,9 +436,15 @@ void heapsort(void) {
 	uint16 temp;
 	uint8 heapifySize = 32;
 	while(heapifySize >= 1){
-		temp = heapArray[heapifySize];
-		heapArray[heapifySize] = heapArray[ROOT]; // here should be replaced by real output file write
-		heapArray[ROOT] = temp;
+		#ifdef MEMORY_SAVE_SUPER
+			temp = readIndexBuffer(heapifySize);
+			writeIndexBuffer(heapifySize,readIndexBuffer(ROOT)); // here should be replaced by real output file write
+			writeIndexBuffer(ROOT,temp);
+		#else
+			temp = heapArray[heapifySize];
+			heapArray[heapifySize] = heapArray[ROOT]; // here should be replaced by real output file write
+			heapArray[ROOT] = temp;
+		#endif
 		heapifySize--;
 		heapify(heapifySize, ROOT);
 	}
@@ -303,6 +463,29 @@ void heapsort(void) {
 	void heapify(uint8 size, uint8 n) {
 		uint16 temp = 0;
 		uint8 childIndex = n << 1;
+		uint16 readIndexBuffer_childIndex;
+		uint16 readIndexBuffer_n;
+		#ifdef MEMORY_SAVE_SUPER
+			if(childIndex < size){
+				if(readIndexBuffer(childIndex) > readIndexBuffer(childIndex + 1)){
+					childIndex = childIndex + 1; 
+				} 
+			}
+			
+			/*quit heapify when go through the whole subtree*/
+			if(childIndex > size){
+				return;
+			}
+			readIndexBuffer_childIndex = readIndexBuffer(childIndex);
+			readIndexBuffer_n = readIndexBuffer(n);
+			if(readIndexBuffer_childIndex < readIndexBuffer_n ){
+				temp = readIndexBuffer_childIndex;
+				writeIndexBuffer(childIndex,readIndexBuffer_n );
+				writeIndexBuffer(n,temp );
+				n = childIndex;
+				heapify(size,n);
+			}
+		#else
 		if(childIndex < size){
 			if(heapArray[childIndex] > heapArray[childIndex + 1]){
 				childIndex = childIndex + 1; 
@@ -319,6 +502,7 @@ void heapsort(void) {
 			n = childIndex;
 			heapify(size,n);
 		}
+		#endif
     return;
 	}
 	
@@ -336,4 +520,49 @@ void heapsort(void) {
 		heapify(heapifySize,i);
 	}
 }
+#ifdef MEMORY_SAVE_SUPER
+	/**************************************************************************
+ *  Function: readIndexBuffer
+ *     NOTE:build heap out of random array, used for debug only
+ *  Args:N/A
+ *
+ *  Return: N/A 
+**************************************************************************/
+uint16 readIndexBuffer( uint8 i){ // i is subtracted by 1 first when get in this function. due to heap definition, and also right shift one bit
+     i = i - 1;
+		 /*read second index*/
+     if(i & 1){
+			 i >>= 1;
+       return (uint16)(bit24_16[i]).secon4 +(((bit24_16[i]).secon8 )<<4);
+     }
+		 /*read first index*/
+     else{
+       i >>= 1;
+			 return (uint16)(bit24_16[i]).first8 +(((bit24_16[i]).first4 )<<8);
+     }
+       
+}
+	/**************************************************************************
+ *  Function: writeIndexBuffer
+ *     NOTE:build heap out of random array, used for debug only
+ *  Args:N/A
+ *
+ *  Return: N/A 
+**************************************************************************/
+void writeIndexBuffer(uint8 i, uint16 val){
+	i = i - 1;
+	/*read second index*/
+  if(i & 1){
+    i >>= 1;
+    (bit24_16[i]).secon4 = val;
+    (bit24_16[i]).secon8 = val >> 4;
+  }
+	/*read first index*/
+  else{
+    i >>= 1;
+   (bit24_16[i]).first8 = val;
+   (bit24_16[i]).first4 = val >> 8;
+  }
+}
+#endif
 
