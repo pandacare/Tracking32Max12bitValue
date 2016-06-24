@@ -37,9 +37,13 @@ void heapHandle(uint16 num){
   /*if heap not full, insert new value from bottom*/
   if(!(heapIndex > HEAP_SIZE) ){
     heapInsert(num,heapIndex);
-		printf("the heapIndex is %d\n",heapIndex);
+		#ifdef DEBUG
+			printf("the heapIndex is %d\n",heapIndex);
+		#endif
     heapIndex++;
-		printf("the heapIndex is %d\n",heapIndex);
+		#ifdef DEBUG
+			printf("the heapIndex is %d\n",heapIndex);
+		#endif
   }	
 	/*if heap is full and new input smaller than root, insert new value from root*/
 	#ifdef MEMORY_SAVE_SUPER

@@ -52,8 +52,12 @@ FILE* openFile(int argc, char*fileName){
  *  Args: 
  *     *fileName: Input file name, name will be changed to *.out to match
  *                the example format
- *     *inputFile: get the input file 
- *     filePostion: the position to start the last 32 bytes data
+ *     *inputFile:    Get the input file 
+ *     filePostion:   The position to start the last 32 bytes data
+ *     heapIndex:     Used to tell if the heap buffer is full or not 
+ *     oddReadOffset: Used when ouptput last 32 sensor data, to output data
+ *                    currectly in odd number case 
+ *                    
  *
  *  Return: N/A 
 **************************************************************************/
@@ -83,19 +87,22 @@ void passDataOutputFile(char*fileName, FILE* inputFile, uint8 heapIndex,long int
 	}
 	/*write the last 32 to the output file*/
 	fprintf(fp, "--Last 32 Valeus--\n");
-	fprintf(fp,"the heapIndex is %d\n",heapIndex);
 	if(heapIndex > HEAP_SIZE){
 		#ifdef MEMORY_SAVE
 			printf("filePosition before adjust is %ld\n",filePostion);
 			filePostion = filePostion - oddReadOffset - DATA_SIZE_IN_BYTE;
-			printf("filePosition is %ld\n",filePostion);
-			printf("the position of stream before fseek is %ld\n", ftell(inputFile)); 
+			#ifdef DEBUG
+				printf("filePosition is %ld\n",filePostion);
+				printf("the position of stream before fseek is %ld\n", ftell(inputFile)); 
+			#endif
 			if(fseek(inputFile,- oddReadOffset - DATA_SIZE_IN_BYTE,SEEK_END)){
 				fprintf(stderr, "ERROR reading file 1 %s: %s", fileName, strerror(errno));
 				return;
 			}
-			printf("filePosition after fseek is %ld\n",filePostion);
-			printf("the position of stream after fseek is %ld\n", ftell(inputFile)); 
+			#ifdef DEBUG
+				printf("filePosition after fseek is %ld\n",filePostion);
+				printf("the position of stream after fseek is %ld\n", ftell(inputFile)); 
+			#endif
 			/*in case of odd number of 12bit data,start output from second 12bit value of first loop*/ 
 			if(oddReadOffset){
 				for(i = 0; i < 16; i++){
@@ -130,7 +137,9 @@ void passDataOutputFile(char*fileName, FILE* inputFile, uint8 heapIndex,long int
 			}
     #else			
 			for(i = 0; i < LAST_DATA_SIZE; i++){
-				printf("the number is %d\n", i );
+				#ifdef DEBUG
+					printf("the number is %d\n", i );
+				#endif
 				fprintf(fp,"%d\n",lastDataArray[dataIndex.val++]);
 			}
     #endif
@@ -163,17 +172,20 @@ void passDataOutputFile(char*fileName, FILE* inputFile, uint8 heapIndex,long int
 	/*close file */
 	fclose(fp);
   /* open input file scuccessfully*/
-  fprintf(stdout, "All data write to %s\n", fileName);   
+  fprintf(stdout, "All data are successfully loaded to %s\n", fileName);   
   return;	
 }
 
 #ifdef MEMORY_SAVE_SUPER
 		/**************************************************************************
 	 *  Function: readIndexBuffer
-	 *     NOTE:build heap out of random array, used for debug only
-	 *  Args:N/A
+	 *     NOTE:function to read 12bit value into 48 bytes buffer in memory super 
+	 *          save mode
+	 *  Args:
+	 *     i: buffer index, need to subtracted by 1 first when get in this function 
+	 *        due to heap definition
 	 *
-	 *  Return: N/A 
+	 *  Return: Corresponding value readed out from location(i-1)
 	**************************************************************************/
 	uint16 readIndexBuffer( uint8 i){ 
 		/*  subtracted by 1 first when get in this function. due to heap definition*/
@@ -191,8 +203,12 @@ void passDataOutputFile(char*fileName, FILE* inputFile, uint8 heapIndex,long int
 	}
 		/**************************************************************************
 	 *  Function: writeIndexBuffer
-	 *     NOTE:build heap out of random array, used for debug only
-	 *  Args:N/A
+	 *     NOTE:function to write 12bit value into 48 bytes buffer in memory super 
+	 *          save mode
+	 *  Args:
+	 *    i: Buffer index, need to subtracted by 1 first when get in this function 
+	 *       due to heap definition
+	 *   val:Value to be written into location (i-1).
 	 *
 	 *  Return: N/A 
 	**************************************************************************/

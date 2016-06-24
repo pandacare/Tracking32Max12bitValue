@@ -18,13 +18,15 @@
 #include "main.h"
 
 int main(int argc, char *argv[]){
-  #ifdef MEMORY_SAVE_SUPER
-		printf("super memory save mode\n");
-	#else
-		#ifdef MEMORY_SAVE
-			printf(" memory save mode\n");
+	#ifdef DEBUG
+		#ifdef MEMORY_SAVE_SUPER
+			printf("super memory save mode\n");
 		#else
-			printf(" no memory save mode\n");
+			#ifdef MEMORY_SAVE
+				printf(" memory save mode\n");
+			#else
+				printf(" no memory save mode\n");
+			#endif
 		#endif
 	#endif
   /**open input file*/
@@ -37,8 +39,10 @@ int main(int argc, char *argv[]){
   while((fread(data.byteVal, sizeof(data.byteVal), 1, fp)) != 0){ 
 		 heapHandle(FIRST_12BIT);
 		 heapHandle(SECON_12BIT);
-     printf("the position of stream is %ld\n", ftell(fp)); 
-     printf("the value of feof() is %d\n", feof(fp));
+		 #ifdef DEBUG
+			 printf("the position of stream is %ld\n", ftell(fp)); 
+			 printf("the value of feof() is %d\n", feof(fp));
+		 #endif
   }
   /*error during file reading*/
   if(!feof(fp)){ 

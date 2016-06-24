@@ -1,5 +1,6 @@
 #ifndef    MAIN_H_
 #define    MAIN_H_
+  //#define DEBUG                      // define to print debug info
 	//#define MEMORY_SAVE_SUPER          //optional, define in command line during make, defaul no memory save
 	//#define MEMORY_SAVE                //optional, define in command line during make, defaul no memory save
 	#ifdef  MEMORY_SAVE_SUPER
